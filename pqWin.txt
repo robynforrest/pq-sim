@@ -1,0 +1,55 @@
+# Simulation of p and q
+
+window title="p-q simulation"
+
+grid 1 6 sticky=W
+  label text=View: font="bold 10" padx="0 5"
+  button text="R Code" function=openFile action=pqBatch.r
+  button text="WDF" function=openFile action=pqWin.txt
+  button text="Doc" function=openFile action=BinDirModel.pdf
+  button text="LaTeX" function=openFile action=BinDirModel.tex
+  button text="Schnute&Haigh" function=openFile action=SchnuteHaigh2007.pdf
+ 
+grid 1 7 sticky=W
+  # design
+  vector length=2 names="n A" labels="n A" values="70 50"
+  null
+  # parameters
+  vector length=6 sticky=W names="Z beta1 alpha qtil b N" \
+    labels="Z beta1 alpha qtil b N" \
+    values="0.1 0.1 2.0 0.01 0.5 100"
+  null
+ vector length=1 names=rbar labels=Rbar values=1.0
+  null  
+ 
+ # calculated parameter
+  vector length=1 names=a labels=a values=0.0 \
+    entrybg=lightpink width=10
+
+grid 1 6 sticky=W
+  button text="Simulate p&q" function=pqSim action=pqSim  bg=palegreen
+  button text="Pairs" function=pqPairs action=pqPairs bg=lightblue
+  button text="q vs. p" function=pqPlot action=pqPlot bg=lightblue
+  button text="q vs. p full" function=pqPlotFull action=pqPlotFull bg=lightblue
+  button text="lq vs. lp" function=pqPlotLogit action=pqPlotLogit bg=lightblue
+  button text="Restart" function=restart  action=restart bg=red
+
+# Simulation of data
+vector length=3 names="ns sz powr" labels="samples bubsize powr" \
+  values="4 0.2 0.5" width=10 sticky=W
+
+grid 1 4 sticky=W
+  button text="Simulate Data" function=xyGen action=xyGen \
+    bg=palegreen sticky=SW
+  button text="y bubbles" function=yBub action=yBub bg=lightblue
+  button text="x bubbles" function=xBub action=xBub bg=lightblue
+  button text="Restart" function=restart  action=restart bg=red
+
+# Run ADMB code
+    grid 2 3 sticky=W
+    null
+    null
+    null
+    button text="Simulate Data and Run Estimation" function=callADMB action=callADMB bg=palegreen sticky=SW
+    button text="Fitted proportions" function=fitProp action=fitProp bg=lightblue sticky=SW
+    button text="Selectivity" function=fitSel action=fitSel bg=lightblue sticky=SW

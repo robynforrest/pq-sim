@@ -1,0 +1,270 @@
+% Bernoulli Dirichlet Model
+
+\documentclass[12pt,fleqn,letterpaper]{article}
+
+% ######################## Change header with each version
+\def\myhead{Version 7 -- July 29, 2013} 
+
+% Packages
+% \usepackage{latexsym}   % LaTeX symbol fonts (may be needed eventually)
+\usepackage{bm}           % For bold math \bm
+\usepackage{upgreek}      % For upright Greek letters; in package 'was'
+% \usepackage{mathrsfs}   % Ralph Smith's formal script gives \mathscr
+% \usepackage{amsmath}    % If needed
+
+% Page settings
+\oddsidemargin 0in               \evensidemargin 0in
+\textwidth 6.3in                 \textheight 9.0in
+\topmargin -0.5in
+\mathindent 0ex      % Don't indent equations with numbers on right
+% \parskip 4ex
+% \baselineskip 3ex
+
+% Basic abbreviations
+\def\noi{\noindent}
+\def\noh{\noindent \hangindent=\parindent}
+\def\vsu{\vspace*{-1ex}}   % nudge up
+\def\vsd{\vspace*{1ex}}
+\def\newp{\vfill \break}   % new page
+\def\beq{\begin{equation}}
+\def\eeq{\end{equation}}
+\def\dst{\displaystyle}
+
+% Equation reference: #1=internal label saved in AUX file
+  \newcommand{\eref}[1]{(\ref{#1})}
+
+% Equation numbering
+% Start and end tables with \tableEq and \normalEq
+\newcounter{saveEq}
+\def\putEq{\setcounter{saveEq}{\value{equation}}}
+\def\getEq{\setcounter{equation}{\value{saveEq}}}
+%
+\def\tableEq#1{ % equations in tables; #1=table number
+  \putEq \setcounter{equation}{0}
+  \renewcommand{\theequation}{T#1.\arabic{equation}}}
+\def\setEq#1{ % equations in appendices; #1=appendix letter
+  \putEq \setcounter{equation}{0}
+  \renewcommand{\theequation}{#1.\arabic{equation}}}
+\def\normalEq{ % renew normal equations
+  \getEq \renewcommand{\theequation}{\arabic{equation}}}
+
+% Vectors and moments
+  \def\bfp{\mathbf{p}}
+  \def\bfpp{\mathbf{p'}}
+  \def\bfq{\mathbf{q}}
+  \def\bfv{\mathbf{v}}
+  \def\bfx{\mathbf{x}}
+  \def\bfy{\mathbf{y}}
+  \def\bfyp{\mathbf{y'}}
+  \def\bfth{\bm{\uptheta}}
+  \def\bfph{\bm{\upphi}}
+  \def\bfdel{\bm{\updelta}}
+
+% Greek abbrevitions
+  \def\al{\alpha}
+  \def\bt{\beta}
+  \def\Gam{\Gamma}
+
+% Other macros
+  \def\logit{\mbox{logit}}
+% \def\Ell{\mathscr L}          % script L
+  \def\Bernou{\mathcal{B}}
+  \def\Dirich{\mathcal{D}}
+  \def\ptil{\tilde{p}}
+  \def\pbar{\bar{p}}
+  \def\qtil{\tilde{q}}
+
+% ########### Document starts here ##############
+
+\begin{document}
+\pagestyle{myheadings}
+  \markright{\myhead}
+
+\begin{center}
+  \textbf{
+  Dealing with those pesky zeros in ecological models: \\ 
+  minding your $p\,$s and $q\,$s}
+\end{center}
+
+% ***** Table 1 *****
+
+\noi \textbf{Table 1.} Notation for the composite Bernoulli-Dirichlet model. \\
+
+\noi \begin{tabular}{cp{5.3in}}
+\hline
+  $n$ & number of groups \\
+  $i$ & group index with $1 \leq i \leq n$ \\[2ex]
+%
+  $p_i$ & nonzero probability of being in group $i$, 
+    based on an ecologial model \\
+  $\pbar$ & mean value $(1/n)$ of $p_1,\ldots,p_n$ \\
+  $q_i$ & Bernoulli probability of 0 in group $i$ \\
+  $x_i$ & Bernoulli random variable (0 or 1) drawn with probability $q_i$
+    of value 0 \\
+  $p_i'$ & adjusted proportions $p_i$, conditioned on $x_i$ \\
+  $y_i$ & random proportions from the Dirichlet distribution with parameters
+    $p_1,\ldots,p_n,N$ \\
+  $y_i'$ & random proportions from the composite Bernoulli-Dirichlet model \\
+  $\bfv$ & generic vector notation $\bfv = (v_1,\ldots,v_n)$; e.g., 
+    $\bfp,\bfpp,\bfq,\bfx,\bfy,\bfyp$ \\[2ex]
+%
+  $\bfth$ & parameter vector for an ecological model of nonzero probabilities 
+    $\bfp(\bfth)$ \\
+  $N$ & effective sample size for a Dirichlet distribution \\
+  $a,b,\qtil$ & parameters in the relationship between $p_i$ and $q_i$, 
+    where $b>0$ and $0<\qtil<1$ \\
+  $\bfph$ & complete model vector $\bfph = (\bfth,\qtil,b,N)$ \\[2ex]
+%
+  $\Bernou(x|p)$ & Bernoulli distribution, where $x=0 \mbox{ or } 1$ with 
+    probability $1-p$ or $p$, respectively \\
+  $\Dirich(\bfy|\bfp,N)$ & Dirichlet distribution for vector $\bfy$ of
+    proportions that sum to 1, given the proportion vector $\bfp$ and
+    the effective sample size $N$ \\
+
+\hline
+\end{tabular} \\[3ex]
+
+% ***** Table 2 *****
+
+\tableEq{2}
+\noi \textbf{Table 2.} Link between $p_i$ and $q_i$ for $i=1,\ldots,n$, based on
+parameters $\qtil$ and $b$, where $0<\qtil<1$ and $b>0$ and $a$ is computed with \eref{a}. \\ 
+\hrule 
+
+\beq \logit(p) \equiv \log \left(\frac{p}{1-p}\right) \label{logit} \eeq
+
+\beq \logit(q_i) = a - b \, \logit(p_i) \label{lqptil} \eeq
+
+% \beq \ptil(\bfth) = \left[\, \prod_{i=1}^n p_i(\bfth) \right]^{1/n} \label{ptil} \eeq
+
+\beq \pbar(\bfth) = \frac{1}{n} \label{pbar} \eeq
+
+\beq \logit(q_i) = \logit(\qtil) - b \,[ \logit(p_i) - \logit(\pbar)]
+  \label{lqp} \eeq
+
+\beq a(\bfth,\qtil,b) = \logit(\qtil) + b \, \logit(\ptil(\bfth)) \label{a} \eeq
+
+\newcommand{\lgt}[1]
+  {\log\left(\frac{#1}{1-#1}\right)}
+
+\beq q_i(\bfth,\qtil,b) = \frac{e^{a-b\lgt{p_i}}}{1 + e^{a-b\lgt{p_i}}} \label{qp} \eeq
+
+\hrule \newp
+
+% ***** Table 3 *****
+
+\tableEq{3}
+\noi \textbf{Table 3.} Steps for simulating $\bfyp(\bfph)$ from $\bfp(\bfth)$ and $\bfq(\bfth,\qtil,b)$, along with the corresponding probability distributions. \\ 
+\hrule 
+
+\beq x_i \sim \Bernou(1-q_i) \label{xi} \eeq 
+ 
+\beq p_i' = \frac{x_i p_i}{\dst \sum_{i=1}^n (x_i p_i)} \label{pip} \eeq
+
+\beq \bfyp|_{\bfpp>0} \sim \Dirich(\bfpp|_{\bfpp>0},N) \label{yp} \eeq 
+ 
+\beq P(\bfx|\bfq) = \prod_{i=1}^n [q_i^{1-x_i}\, (1-q_i)^{x_i}] \label{Px} \eeq
+
+\beq P(\bfy|\bfp,N)
+  = \frac{\Gam(N)}{\dst \prod_{i=1}^n \Gam(Np_i)}
+    \prod_{i=1}^n y_i^{Np_i-1}
+\label{Pydir} \eeq
+
+\beq P(\bfyp|\bfpp,N)
+  = \frac{\Gam(N)}{\dst \prod_{p_i'>0} \Gam(Np_i')}
+    \prod_{p_i'>0} y_i'\,^{Np_i'-1}
+\label{Pypdir} \eeq
+
+\hrule \vspace*{6ex}
+
+% ***** Table 4 *****
+
+\tableEq{4}
+\noi \textbf{Table 4.} Inference functions for estimating $\bfph$ from observed data $\bfyp$, where $L$ denotes the likelihood and $\ell$ the negative log likelihood. \\
+\hrule
+
+  
+\beq x_i = \left\{ \begin{array}{l}
+  0 \mbox{\ if\ } y_i'=0 \\
+  1 \mbox{\ if\ } y_i'>0 \\
+\end{array} \right. \label{xobs} \eeq
+
+ 
+\beq p_i'(\bfth,\bfx) = \frac{x_i p_i(\bfth)}{\dst \sum_{i=1}^n [x_i p_i(\bfth)]} \label{pip2} \eeq
+
+ 
+\beq L(\bfph|\bfyp) = P[\bfyp|\bfpp(\bfth,\bfx),N] \, P[\bfx|\bfq(\bfth,\qtil,b)]  \label{L} \eeq
+
+\begin{eqnarray} 
+  \lefteqn{\ell(\bfph) = \sum_{p_i'>0} \left[\log \Gam(Np_i') 
+     - (Np_i'-1) \log y_i' \right]} \label{ell} \\
+  && - \sum_{i=1}^n \left[(1-x_i) \log q_i + x_i \log(1-q_i) \right] - \log \Gam(N)
+  \nonumber \end{eqnarray}
+
+\hrule \newp
+
+% ***** Table 5 *****
+
+\noi \textbf{Table 5.} Model notation for simulating proportions $p_i$ in a stable fish age distribution. \\
+
+\noi \begin{tabular}{cp{5.3in}}
+\hline
+  $i$ & age class index $(i=1,\ldots,n)$ \\
+  $n$ & maximum age class \\
+  $Z$ & total mortality from natural causes and fishing ($Z=M+F$) \\
+  $S_i$ & survival from recruitment (age class 1) to age class $i$\\
+  $\bt_i$ & fishery selectivity on age class $i$\,$(0<\bt_i\leq 1)$ \\
+  $\al$ & selectivity parameter $(\al>0)$ \\
+  $A$ & age class with full selectivity, where $\bt_i=1$ for $A \leq i \leq n$ \\
+  $R_i$ & historical recruitment for age class $i$ \\
+  $B$ & age class with anomolous recruitment \\
+  $\bfdel$ & fixed design vector $\bfdel = (n,A)$ \\
+  $\bfth$ & vector $\bfth = (Z,\bt_1,\al)$ of potentially estimable parameters \\
+  $p_i(\bfth|\bfdel)$ & simulated proportion in age class $i$ \\
+  $\bfph$ & full parameter vector for the Bernoulli-Dirichlet model, in this case
+    $\bfph = (Z,\bt_1,\al,\qtil,b,N)$ \\
+\hline
+\end{tabular} \\[4ex]
+
+% ***** Table 6 *****
+
+\tableEq{6}
+\noi \textbf{Table 6.} Model equations for computing $\bfp(\bfth)$, given the design vector $\bfdel$. \\
+
+\hrule
+
+ 
+\beq S_i = \left\{ \begin{array}{ll}
+  e^{-Z(i-1)}\,; & i = 1,\ldots,n-1 \\
+  \frac{\dst e^{-Z(i-1)}}{\dst 1-e^{-Z}}\,; & i = n \\
+\end{array} \right. \label{Si} \eeq
+
+ 
+\beq \bt_i(\bt_1,\al) = \left\{ \begin{array}{ll}
+  1 - (1-\bt_1)\,\left(\dst \frac{A - i}{A-1}\right)^\al \,; &
+    i = 1,\ldots,A-1 \\
+  1 \,; & i = A,\ldots,n
+ \end{array} \right. \label{bti} \eeq
+
+ 
+% \beq R_i = \left\{ \begin{array}{ll}
+%   1; & i \neq B \\
+%   R_B; & i = B \\
+% \end{array} \right. \label{Ri} \eeq
+
+\beq R_i = 1 \label{Ri} \eeq
+
+
+ \beq p_i(\bfth) = \frac{S_i \bt_i R_i}{
+  \sum_{i=1}^n S_i \bt_i R_i}\,; \qquad
+  i=1,\ldots,n \label{pi} \eeq
+
+\hrule \vspace*{4ex}
+
+\noi {\bf GUI:} Entries for $\bfdel$ and $\bfph$. Buttons for simulation, estimation, and MCMC. Probably use a notebook with a second page for graphics output options. Source my example {\tt pq.r}. \vsd
+
+\noi {\bf Simulation:} Calculate $\bfp$ from Table 6, based on $\bfdel$ and $\bfth$. Then get $\pbar$, $a$ and $\bfq$ from \eref{pbar}, \eref{a} and \eref{qp}. Generate $\bfx$ from \eref{xi} using {\tt rbinom} with probability $1-q_i$. (This corresponds to the distribution \eref{Px}.) Use \eref{pip} to compute $\bfpp$. Finally, use \eref{yp} to produce the Dirichlet sample $\bfyp$. (This corresponds to the distribution \eref{Pypdir}.) Define {\tt rdirich} using {\tt rgamma} as in the past. Write $\bfyp$ to a file for use by ADMB in the estimation step. \vsd
+
+\noi {\bf Estimation:} Start with $\bfyp$ from the simulation. Get $\bfx$ from \eref{xobs}. Use \eref{ell} to calculate the negative log likelihood $\ell$ needed by ADMB. Always compute {\tt log gamma}, not {\tt gamma} directly ({\tt lgamma} in R and {\tt gammaln} in ADMB).
+
+\end{document}

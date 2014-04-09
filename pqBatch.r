@@ -228,6 +228,7 @@ callADMB <- function() {
 
 #Call the function to plot proportions at age
 fitProp<-function() {
+	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
 	getWinVal(scope="L");
 	graphcount<-0
 	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
@@ -242,12 +243,13 @@ fitProp<-function() {
 				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
 				graphcount <-0} # end if
 		}# end if
-	  } #end for
- } #end function
+	} #end for
+} #end function
 
 #Call the function to plot selectivity at age
- fitSel<-function() {
- 	getWinVal(scope="L");
+fitSel<-function() {
+	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
+	getWinVal(scope="L");
 	graphcount<-0
 	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
 				
@@ -260,9 +262,9 @@ fitProp<-function() {
 				windows()
 				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
 				graphcount <-0}  # end if
- 		}# end if
- 	  } #end for
- } #end function
+		}# end if
+	} #end for
+} #end function
 
 
 

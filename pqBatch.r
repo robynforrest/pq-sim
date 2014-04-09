@@ -116,7 +116,8 @@ pqPairs <- function() {
 
 pqPlot <- function() {
   getWinVal(scope="L"); # for qtil
-  plot(pvec,qvec); lines(pvec,qvec,col="blue",lwd=2);
+  z = order(pvec)
+  plot(pvec[z],qvec[z]); lines(pvec[z],qvec[z],col="blue",lwd=2);
   abline(h=qtil,col="red"); abline(v=1/n,col="red"); };
 
 pqPlotFull <- function() {
@@ -125,7 +126,7 @@ pqPlotFull <- function() {
   maxp = max(.999,pvec);
   pp = seq(from=minp,to=maxp,length=1000);
   qq = p2q(pp);
-  plot(pp,qq,type="l"); points(pvec,qvec,col="green");
+  plot(pp,qq,type="l",col="green4",lwd=2); points(pvec,qvec,pch=21,col="green4",bg="green");
   abline(h=qtil,col="red"); abline(v=1/n,col="red"); };
 
 pqPlotLogit <- function() {
@@ -135,8 +136,8 @@ pqPlotLogit <- function() {
   pp = seq(from=minp,to=maxp,length=1000);
   qq = p2q(pp);
   lp = logit(pp); lq =logit(qq);
-  plot(lp,lq,type="l");
-  points(logit(pvec),logit(qvec),col="green");
+  plot(lp,lq,type="l",col="green4",lwd=2);
+  points(logit(pvec),logit(qvec),pch=21,col="green4",bg="green");
   abline(h=logit(qtil),col="red"); abline(v=logit(1/n),col="red");
   abline(a=0,b=-1,col="blue") };
 

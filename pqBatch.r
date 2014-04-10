@@ -163,6 +163,18 @@ xBub <- function() {
 	  mtext("Proportion", side=2, outer=T, line=0.5, cex=1.25)
 	  mtext(nam, side=3, outer=T, line=-1, cex=1.3)
   }
+panel.hist <- function(x, ...){
+	    usr <- par("usr"); on.exit(par(usr))
+	    par(usr = c(usr[1:2], 0, 1.5) )
+	    h <- hist(x, plot = FALSE)
+	    breaks <- h$breaks; nB <- length(breaks)
+	    y <- h$counts; y <- y/max(y)
+	    rect(breaks[-nB], 0, breaks[-1], y, col="tan", ...)
+  }
+ 
+ plotFitPairs <- function(Pars) {
+	 pairs(Pars,pch=20,upper.panel=panel.smooth,diag.panel=panel.hist, lower.panel=panel.smooth)
+  }
 
 #_____________________________________________
 #ADMB FUNCTIONS
@@ -179,15 +191,17 @@ write_dat_pin=function(yobs)
 	write(A,dfile,1,append=T)
 	write("#rbar Average recruitment ",dfile,1,append=T)
 	write(rbar,dfile,1,append=T)
-	write("#yObs Simulated age proportions from Bernoulli Dirichlet distribution ",dfile,1,append=T)
+	write("#yObs Simulated age proportions from Bernoulli Dirichlet distribution",dfile,1,append=T)
 	write(yobs,dfile,1,append=T)
+	write("#ubZ Upper bound on log_Z",dfile,1,append=T)
+	write(log((3.*Z)),dfile,1,append=T)
 	write(" #debug	Switches on cout statements",dfile,1,append=T)
 	write(0,dfile,1,append=T)
 	write("#eof",dfile,1,append=T)
 	write(999,dfile,1,append=T)
 
 	dfile="pq.pin"
-	write("#Initial parameter values for logZ, beta1, alpha, qtil and b",dfile,1)
+	write("#Initial parameter values for logZ, beta1, alpha, qtil, b and N",dfile,1)
 	write(log(Z),dfile,1,append=T)
 	write(beta1,dfile,1,append=T)
 	write(alpha,dfile,1,append=T)
@@ -203,6 +217,8 @@ callADMB <- function() {
 	getWinVal(scope="L");
 	ymatEst <- matrix(0,nrow=n, ncol=ns+1)
 	selEst  <- matrix(0,nrow=n, ncol=ns+1)
+	parEst <-  matrix(0,nrow=ns, ncol=6)
+	colnames(parEst) <- c("logZ", "beta1","alpha","qtil","b","N")
 	xyGen(); #generate ns samples 
 	
 	#Loop over ns samples
@@ -219,14 +235,16 @@ callADMB <- function() {
 
 		ymatEst[,(i+1)] <- out$pvec
 		selEst[,(i+1)] <- out$Betai
-		
-		ymatEst<<-ymatEst
-		selEst <<- selEst
+		parEst[i,] <-c(out$log_Z, out$beta1, out$alpha, out$qtil, out$b, out$N)
 	}
+       ymatEst<<-ymatEst
+       selEst <<- selEst
+       parEst <<- parEst
   }
 
 #Call the function to plot proportions at age
 fitProp<-function() {
+	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
 	getWinVal(scope="L");
 	graphcount<-0
 	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
@@ -246,6 +264,7 @@ fitProp<-function() {
 
 #Call the function to plot selectivity at age
  fitSel<-function() {
+ 	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
  	getWinVal(scope="L");
 	graphcount<-0
 	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
@@ -262,6 +281,10 @@ fitProp<-function() {
  		}# end if
  	  } #end for
  } #end function
+
+ fitPairs <- function() {
+       plotFitPairs(parEst)
+ }
 
 
 

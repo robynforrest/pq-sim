@@ -16,6 +16,7 @@ DATA_SECTION
 	   init_int A;	//Age class with full selectivity, where Bi = 1 for A <= i <= n
 	   init_number rbar; //Average recruitment
 	   init_vector yObs(1,n);
+	   init_number ubZ; //upper bound of log_Z
 	   init_int debug; //debugging flag
 	   init_int eof;	  //end of file marker
 
@@ -48,12 +49,12 @@ DATA_SECTION
 	END_CALCS
 
 PARAMETER_SECTION
-	init_bounded_number log_Z(-3.5,-0.2,1);              //Total mortality (F+M)	      //DIFFICULTIES SETTING BOUNDS ON Z BECAUSE CAN GO TOO HIGH IF MAX-AGE IS LARGE
-	init_bounded_number beta1(0.0001,1,1);       //Parameter used to build Beta_i Fishery selectivity on age class i (0 < beta1 <= 1) 		#theta  2
-	init_bounded_number alpha(0.0001,10.,1);     //Selectivity parameter
-	init_bounded_number qtil(0.000001,1,1);		 //Parameter relating p to q
-	init_bounded_number b(0.000001,4.,1);		 //Parameter relating p to q
-	init_bounded_number N(0.000001,500.,-1);	         //Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
+	init_bounded_number log_Z(-3.5,ubZ,1);              //Total mortality (F+M)	      
+	init_bounded_number beta1(0.0001,0.999,1);       //Parameter used to build Beta_i Fishery selectivity on age class i (0 < beta1 <= 1) 		#theta  2
+	init_bounded_number alpha(0.0001,5.,1);     //Selectivity parameter
+	init_bounded_number qtil(0.0001,0.999,1);		 //Parameter relating p to q
+	init_bounded_number b(0.0001,2.,1);		 //Parameter relating p to q	 
+	init_bounded_number N(5,500.,1);	         //Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
 	 
 	number a;
 	number Z;
@@ -249,10 +250,10 @@ REPORT_SECTION
 	REPORT(qtil);
 	REPORT(b);
 	REPORT(a);
+	REPORT(N);
 	report<<"#Model Dimensions"<<endl;
 	REPORT(n);
 	REPORT(A);
-	REPORT(N);
 	report<<"#Other variables"<<endl;
 	REPORT(Z);
 	REPORT(Si);

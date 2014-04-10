@@ -1,7 +1,7 @@
-#Initial parameter values for logZ, beta1, alpha, qtil and b
+#Initial parameter values for logZ, beta1, alpha, qtil, b and N
 -2.302585
 0.1
 2
-0.15
+0.01
 0.5
 100

@@ -154,15 +154,34 @@ xBub <- function() {
   plotBubbles(xB,clrs=c("black","red","red"),size=sz,
     powr=powr,prettyaxis=TRUE); };
 
- plotFit <- function(age,sim,est,ii, typ,nam){
-	 # barplot(sim, names.arg=paste(age), las=1,col="gray", xlab="Age", ylab="Proportion", ylim=c(0,0.15)) 
-	  plot(age,sim, type=typ, las=1,col=1, xlab="", ylab="", lwd=2)	#, ylim=c(0,0.15)
-	  lines(age,est,type="o",pch=20,cex=2,col=2)
-	  legend("topright", legend=c("Sim","Est"),col=c(1,2), pch=c(15,19), bty="n", cex=1.1)
-	  mtext(paste("Sample",ii), side=3, outer=F, line=-1.25)
-	  mtext("Age", side=1, outer=T, line=-0.05, cex=1.25)
-	  mtext("Proportion", side=2, outer=T, line=0.5, cex=1.25)
-	  mtext(nam, side=3, outer=T, line=-1, cex=1.3)
+plotFit <- function(age,sim,est,ii,typ,nam,onePg=FALSE){
+	# barplot(sim, names.arg=paste(age), las=1,col="gray", xlab="Age", ylab="Proportion", ylim=c(0,0.15)) 
+	plot(age,sim, type=typ, las=1,col=1, xlab="", ylab="", lwd=2, xaxt=ifelse(onePg,"n","s"), yaxt=ifelse(onePg,"n","s"))#, ylim=c(0,0.15)
+	if (onePg) {
+		axis(1,labels=FALSE,tcl=0.5)
+		axis(2,labels=FALSE,tcl=0.5)
+		if (par()$mfg[1]==par()$mfg[3]) axis(1,tick=FALSE,mgp=c(1.75,0.5,0),las=1)
+		if (par()$mfg[2]==1) axis(2,tick=FALSE,mgp=c(1.75,0.5,0),las=1)
+	}
+	lines(age,est,type="o",pch=20,cex=2,col=2)
+	legend("topright", legend=c("Sim","Est"),col=c(1,2), pch=c(15,19), bty="n", cex=1.1,inset=0.05)
+	mtext(paste("Sample",ii), side=3, outer=F, line=-1.25, adj=ifelse(onePg&&typ!="h",0.05,0.5))
+	mtext("Age", side=1, outer=T, line=ifelse(onePg,2,-0.05), cex=1.3)
+	mtext("Proportion", side=2, outer=T, line=ifelse(onePg,2.5,0.5), cex=1.3)
+	mtext(nam, side=3, outer=T, line=ifelse(onePg,0.5,-1), cex=1.3)
+}
+
+panel.hist <- function(x, ...){
+	    usr <- par("usr"); on.exit(par(usr))
+	    par(usr = c(usr[1:2], 0, 1.5) )
+	    h <- hist(x, plot = FALSE)
+	    breaks <- h$breaks; nB <- length(breaks)
+	    y <- h$counts; y <- y/max(y)
+	    rect(breaks[-nB], 0, breaks[-1], y, col="tan", ...)
+  }
+ 
+ plotFitPairs <- function(Pars) {
+	 pairs(Pars,pch=20,upper.panel=panel.smooth,diag.panel=panel.hist, lower.panel=panel.smooth)
   }
 
 #_____________________________________________
@@ -180,15 +199,17 @@ write_dat_pin=function(yobs)
 	write(A,dfile,1,append=T)
 	write("#rbar Average recruitment ",dfile,1,append=T)
 	write(rbar,dfile,1,append=T)
-	write("#yObs Simulated age proportions from Bernoulli Dirichlet distribution ",dfile,1,append=T)
+	write("#yObs Simulated age proportions from Bernoulli Dirichlet distribution",dfile,1,append=T)
 	write(yobs,dfile,1,append=T)
+	write("#ubZ Upper bound on log_Z",dfile,1,append=T)
+	write(log((3.*Z)),dfile,1,append=T)
 	write(" #debug	Switches on cout statements",dfile,1,append=T)
 	write(0,dfile,1,append=T)
 	write("#eof",dfile,1,append=T)
 	write(999,dfile,1,append=T)
 
 	dfile="pq.pin"
-	write("#Initial parameter values for logZ, beta1, alpha, qtil and b",dfile,1)
+	write("#Initial parameter values for logZ, beta1, alpha, qtil, b and N",dfile,1)
 	write(log(Z),dfile,1,append=T)
 	write(beta1,dfile,1,append=T)
 	write(alpha,dfile,1,append=T)
@@ -204,6 +225,8 @@ callADMB <- function() {
 	getWinVal(scope="L");
 	ymatEst <- matrix(0,nrow=n, ncol=ns+1)
 	selEst  <- matrix(0,nrow=n, ncol=ns+1)
+	parEst <-  matrix(0,nrow=ns, ncol=6)
+	colnames(parEst) <- c("logZ", "beta1","alpha","qtil","b","N")
 	xyGen(); #generate ns samples 
 	
 	#Loop over ns samples
@@ -220,10 +243,11 @@ callADMB <- function() {
 
 		ymatEst[,(i+1)] <- out$pvec
 		selEst[,(i+1)] <- out$Betai
-		
-		ymatEst<<-ymatEst
-		selEst <<- selEst
+		parEst[i,] <-c(out$log_Z, out$beta1, out$alpha, out$qtil, out$b, out$N)
 	}
+       ymatEst<<-ymatEst
+       selEst <<- selEst
+       parEst <<- parEst
   }
 
 #Call the function to plot proportions at age
@@ -231,13 +255,16 @@ fitProp<-function() {
 	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
 	getWinVal(scope="L");
 	graphcount<-0
-	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
-				
+	if (onePage) {
+		rc = .findSquare(ns)
+		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
+	} else {
+		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
+	}
 	for(i in 1:ns) {
 		graphcount<-graphcount+1
-		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age")
-		
-		if(graphcount==4) {
+		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age",onePg=onePage)
+		if(!onePage && graphcount==4) {
 			if(ns>4){
 				windows()
 				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
@@ -251,22 +278,24 @@ fitSel<-function() {
 	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
 	getWinVal(scope="L");
 	graphcount<-0
-	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
-				
+	if (onePage) {
+		rc = .findSquare(ns)
+		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
+	} else {
+		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
+	}
 	for(i in 1:ns) {
-		graphcount<-graphcount+1
-		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity")
-		
-		if(graphcount==4) {
+		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity",onePg=onePage)
+		if(!onePage && graphcount==4) {
 			if(ns>4){
 				windows()
 				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
-				graphcount <-0}  # end if
+				graphcount <-0} # end if
 		}# end if
 	} #end for
 } #end function
 
-
-
-
+ fitPairs <- function() {
+       plotFitPairs(parEst)
+ }
 

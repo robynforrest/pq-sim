@@ -2,9 +2,10 @@
 
 window title="p-q simulation"
 
-grid 1 6 sticky=W
+grid 1 7 sticky=W
   label text=View: font="bold 10" padx="0 5"
   button text="R Code" function=openFile action=pqBatch.r
+  button text="ADMB Code" function=openFile action=pq.tpl
   button text="WDF" function=openFile action=pqWin.txt
   button text="Doc" function=openFile action=BinDirModel.pdf
   button text="LaTeX" function=openFile action=BinDirModel.tex

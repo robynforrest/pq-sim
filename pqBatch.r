@@ -116,7 +116,8 @@ pqPairs <- function() {
 
 pqPlot <- function() {
   getWinVal(scope="L"); # for qtil
-  plot(pvec,qvec); lines(pvec,qvec,col="blue",lwd=2);
+  z = order(pvec)
+  plot(pvec[z],qvec[z]); lines(pvec[z],qvec[z],col="blue",lwd=2);
   abline(h=qtil,col="red"); abline(v=1/n,col="red"); };
 
 pqPlotFull <- function() {
@@ -125,7 +126,7 @@ pqPlotFull <- function() {
   maxp = max(.999,pvec);
   pp = seq(from=minp,to=maxp,length=1000);
   qq = p2q(pp);
-  plot(pp,qq,type="l"); points(pvec,qvec,col="green");
+  plot(pp,qq,type="l",col="green4",lwd=2); points(pvec,qvec,pch=21,col="green4",bg="green");
   abline(h=qtil,col="red"); abline(v=1/n,col="red"); };
 
 pqPlotLogit <- function() {
@@ -135,8 +136,8 @@ pqPlotLogit <- function() {
   pp = seq(from=minp,to=maxp,length=1000);
   qq = p2q(pp);
   lp = logit(pp); lq =logit(qq);
-  plot(lp,lq,type="l");
-  points(logit(pvec),logit(qvec),col="green");
+  plot(lp,lq,type="l",col="green4",lwd=2);
+  points(logit(pvec),logit(qvec),pch=21,col="green4",bg="green");
   abline(h=logit(qtil),col="red"); abline(v=logit(1/n),col="red");
   abline(a=0,b=-1,col="blue") };
 
@@ -153,16 +154,23 @@ xBub <- function() {
   plotBubbles(xB,clrs=c("black","red","red"),size=sz,
     powr=powr,prettyaxis=TRUE); };
 
- plotFit <- function(age,sim,est,ii, typ,nam){
-	 # barplot(sim, names.arg=paste(age), las=1,col="gray", xlab="Age", ylab="Proportion", ylim=c(0,0.15)) 
-	  plot(age,sim, type=typ, las=1,col=1, xlab="", ylab="", lwd=2)	#, ylim=c(0,0.15)
-	  lines(age,est,type="o",pch=20,cex=2,col=2)
-	  legend("topright", legend=c("Sim","Est"),col=c(1,2), pch=c(15,19), bty="n", cex=1.1)
-	  mtext(paste("Sample",ii), side=3, outer=F, line=-1.25)
-	  mtext("Age", side=1, outer=T, line=-0.05, cex=1.25)
-	  mtext("Proportion", side=2, outer=T, line=0.5, cex=1.25)
-	  mtext(nam, side=3, outer=T, line=-1, cex=1.3)
-  }
+plotFit <- function(age,sim,est,ii,typ,nam,onePg=FALSE){
+	# barplot(sim, names.arg=paste(age), las=1,col="gray", xlab="Age", ylab="Proportion", ylim=c(0,0.15)) 
+	plot(age,sim, type=typ, las=1,col=1, xlab="", ylab="", lwd=2, xaxt=ifelse(onePg,"n","s"), yaxt=ifelse(onePg,"n","s"))#, ylim=c(0,0.15)
+	if (onePg) {
+		axis(1,labels=FALSE,tcl=0.5)
+		axis(2,labels=FALSE,tcl=0.5)
+		if (par()$mfg[1]==par()$mfg[3]) axis(1,tick=FALSE,mgp=c(1.75,0.5,0),las=1)
+		if (par()$mfg[2]==1) axis(2,tick=FALSE,mgp=c(1.75,0.5,0),las=1)
+	}
+	lines(age,est,type="o",pch=20,cex=2,col=2)
+	legend("topright", legend=c("Sim","Est"),col=c(1,2), pch=c(15,19), bty="n", cex=1.1,inset=0.05)
+	mtext(paste("Sample",ii), side=3, outer=F, line=-1.25, adj=ifelse(onePg&&typ!="h",0.05,0.5))
+	mtext("Age", side=1, outer=T, line=ifelse(onePg,2,-0.05), cex=1.3)
+	mtext("Proportion", side=2, outer=T, line=ifelse(onePg,2.5,0.5), cex=1.3)
+	mtext(nam, side=3, outer=T, line=ifelse(onePg,0.5,-1), cex=1.3)
+}
+
 panel.hist <- function(x, ...){
 	    usr <- par("usr"); on.exit(par(usr))
 	    par(usr = c(usr[1:2], 0, 1.5) )
@@ -225,7 +233,7 @@ callADMB <- function() {
        	for(i in 1:ns) { 
 		yprime <- ymat[,i]
 		write_dat_pin(yprime);
-        	system("pq.exe -maxfn 2000",show.output.on.console=F,invisible=F)
+        	system("pq.exe -maxfn 2000 -nox",show.output.on.console=F,invisible=F)
 		
 		#Read the report file from ADMB and put proportions at age and selectivity from this run into a matrix
 		out<-read.admb("pq")
@@ -247,46 +255,47 @@ fitProp<-function() {
 	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
 	getWinVal(scope="L");
 	graphcount<-0
-	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
-				
+	if (onePage) {
+		rc = .findSquare(ns)
+		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
+	} else {
+		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
+	}
 	for(i in 1:ns) {
 		graphcount<-graphcount+1
-		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age")
-		
-		if(graphcount==4) {
+		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age",onePg=onePage)
+		if(!onePage && graphcount==4) {
 			if(ns>4){
 				windows()
 				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
 				graphcount <-0} # end if
 		}# end if
-	  } #end for
- } #end function
+	} #end for
+} #end function
 
 #Call the function to plot selectivity at age
- fitSel<-function() {
- 	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
- 	getWinVal(scope="L");
+fitSel<-function() {
+	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
+	getWinVal(scope="L");
 	graphcount<-0
-	par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
-				
+	if (onePage) {
+		rc = .findSquare(ns)
+		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
+	} else {
+		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
+	}
 	for(i in 1:ns) {
-		graphcount<-graphcount+1
-		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity")
-		
-		if(graphcount==4) {
+		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity",onePg=onePage)
+		if(!onePage && graphcount==4) {
 			if(ns>4){
 				windows()
 				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
-				graphcount <-0}  # end if
- 		}# end if
- 	  } #end for
- } #end function
+				graphcount <-0} # end if
+		}# end if
+	} #end for
+} #end function
 
  fitPairs <- function() {
        plotFitPairs(parEst)
  }
-
-
-
-
 

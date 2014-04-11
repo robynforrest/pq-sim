@@ -46,12 +46,9 @@ grid 1 4 sticky=W
   button text="Restart" function=restart  action=restart bg=red
 
 # Run ADMB code
-    grid 2 4 sticky=W
-    null
-    null
-    null
-    null
+    grid 1 5 sticky=W pady="8 5"
     button text="Simulate Data and Run Estimation" function=callADMB action=callADMB bg=palegreen sticky=SW
     button text="Fitted proportions" function=fitProp action=fitProp bg=lightblue sticky=SW
     button text="Selectivity" function=fitSel action=fitSel bg=lightblue sticky=SW
     button text="Pairs" function=fitPairs action=fitPairs bg=lightblue sticky=SW
+    check name=onePage checked=TRUE text="Single\nPage" sticky=ES

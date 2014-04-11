@@ -50,9 +50,9 @@ DATA_SECTION
 
 PARAMETER_SECTION
 	init_bounded_number log_Z(-3.5,ubZ,1);              //Total mortality (F+M)	      
-	init_bounded_number beta1(0.0001,0.999,1);       //Parameter used to build Beta_i Fishery selectivity on age class i (0 < beta1 <= 1) 		#theta  2
-	init_bounded_number alpha(0.0001,5.,1);     //Selectivity parameter
-	init_bounded_number qtil(0.0001,0.999,1);		 //Parameter relating p to q
+	init_bounded_number beta1(0.0001,0.999,1);      //Parameter used to build Beta_i Fishery selectivity on age class i (0 < beta1 <= 1) 		#theta  2
+	init_bounded_number alpha(0.0001,5.,1);             //Selectivity parameter
+	init_bounded_number qtil(0.0001,0.999,1);	   //Parameter relating p to q
 	init_bounded_number b(0.0001,2.,1);		 //Parameter relating p to q	 
 	init_bounded_number N(5,500.,1);	         //Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
 	 

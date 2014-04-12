@@ -49,12 +49,23 @@ conv2p <- function(v, rm.zero=TRUE) {
 pqSim <- function() {
 	  getWinVal(scope="L");
 	  age = 1:n;
-	  Si = exp(-Z*(age-1)); Si[n] = Si[n]/(1 - exp(-Z))
-	  betai = rep(1,n); 
-	  ii = 1:(A-1);
-	  betai[ii] = 1 - (1-beta1)*((A-ii)/(A-1))^alpha;
+	  survi <- vector(length=n) #Eqm fished survival rate
+	  Si <- vector(length=n)	#Eqm fished survivorship
+	  
+	  #Selectivity
+	  betai <- plogis(age,ah,gh)
+	  
+	  #Survival rate -- at eqm with constant mortality
+	  for(j in 1:n)  survi[j] <- exp(-M-betai[j]*Fish)
+	  
+	  #Eqm survivorship
+	  Si[1]<-1
+	  for(j in 2:n) Si[j] <- Si[j-1]*survi[j-1]
+            Si[n] = Si[n]/(1 - survi[n])
+	  
 	  Ri = rep(1,n);
-	  pvec = Si*betai*Ri; pvec = pvec / sum(pvec);
+	  pvec = Si*betai*Ri;    #removed selectivity because now Si represents vulnerable numbers
+	  pvec = pvec / sum(pvec);	 
 	  a = logit(qtil) + b*logit(1/n); # pbar = 1/n	   T2.3
 
 	  setWinVal(list(a=a))
@@ -195,24 +206,24 @@ write_dat_pin=function(yobs)
 	write("#Parameters and simulated data from p-q simulation",dfile,1)
 	write("#n Maximum age class",dfile,1,append=T)
 	write(n,dfile,1,append=T)
-	write("#A Age class with full selectivity, where Bi = 1 for A <= i <= n",dfile,1,append=T)
-	write(A,dfile,1,append=T)
 	write("#rbar Average recruitment ",dfile,1,append=T)
 	write(rbar,dfile,1,append=T)
+	write("#Fish Constant fishing mortality -- will be estimated eventually ",dfile,1,append=T)
+	write(Fish,dfile,1,append=T)
 	write("#yObs Simulated age proportions from Bernoulli Dirichlet distribution",dfile,1,append=T)
 	write(yobs,dfile,1,append=T)
-	write("#ubZ Upper bound on log_Z",dfile,1,append=T)
-	write(log((3.*Z)),dfile,1,append=T)
+	write("#ubM Upper bound on log_M",dfile,1,append=T)
+	write(log((3.*M)),dfile,1,append=T)
 	write(" #debug	Switches on cout statements",dfile,1,append=T)
 	write(0,dfile,1,append=T)
 	write("#eof",dfile,1,append=T)
 	write(999,dfile,1,append=T)
 
 	dfile="pq.pin"
-	write("#Initial parameter values for logZ, beta1, alpha, qtil, b and N",dfile,1)
-	write(log(Z),dfile,1,append=T)
-	write(beta1,dfile,1,append=T)
-	write(alpha,dfile,1,append=T)
+	write("#Initial parameter values for logM, beta1, alpha, qtil, b and N",dfile,1)
+	write(log(M),dfile,1,append=T)
+	write(ah,dfile,1,append=T)
+	write(gh,dfile,1,append=T)
 	write(qtil,dfile,1,append=T)
 	write(b,dfile,1,append=T)
 	write(N,dfile,1,append=T)
@@ -226,7 +237,7 @@ callADMB <- function() {
 	ymatEst <- matrix(0,nrow=n, ncol=ns+1)
 	selEst  <- matrix(0,nrow=n, ncol=ns+1)
 	parEst <-  matrix(0,nrow=ns, ncol=6)
-	colnames(parEst) <- c("logZ", "beta1","alpha","qtil","b","N")
+	colnames(parEst) <- c("logM", "ah","gh","qtil","b","N")
 	xyGen(); #generate ns samples 
 	
 	#Loop over ns samples

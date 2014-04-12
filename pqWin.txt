@@ -13,12 +13,12 @@ grid 1 7 sticky=W
  
 grid 1 7 sticky=W
   # design
-  vector length=2 names="n A" labels="n A" values="70 50"
+  vector length=1 names="n" labels="n" values="70"
   null
   # parameters
-  vector length=6 sticky=W names="Z beta1 alpha qtil b N" \
-    labels="Z beta1 alpha qtil b N" \
-    values="0.1 0.1 2.0 0.01 0.5 100"
+  vector length=7 sticky=W names="M Fish ah gh qtil b N" \
+    labels="M Fish ah gh qtil b N" \
+    values="0.1 0.1 10 0.2 0.01 0.5 100"
   null
  vector length=1 names=rbar labels=Rbar values=1.0
   null  

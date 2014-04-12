@@ -13,10 +13,10 @@ DATA_SECTION
 
 	   //Read in parameters from data file
 	   init_int n;	//Maximum age class				
-	   init_int A;	//Age class with full selectivity, where Bi = 1 for A <= i <= n
 	   init_number rbar; //Average recruitment
+	   init_number Fish; //constant fishing mortality -- estimate eventually
 	   init_vector yObs(1,n);
-	   init_number ubZ; //upper bound of log_Z
+	   init_number ubM; //upper bound of log_M
 	   init_int debug; //debugging flag
 	   init_int eof;	  //end of file marker
 
@@ -49,15 +49,15 @@ DATA_SECTION
 	END_CALCS
 
 PARAMETER_SECTION
-	init_bounded_number log_Z(-3.5,ubZ,1);              //Total mortality (F+M)	      
-	init_bounded_number beta1(0.0001,0.999,1);      //Parameter used to build Beta_i Fishery selectivity on age class i (0 < beta1 <= 1) 		#theta  2
-	init_bounded_number alpha(0.0001,5.,1);             //Selectivity parameter
+	init_bounded_number log_M(-2.99,ubM,1);              //Natural mortality	      
+	init_bounded_number ah(1,n,1);      //Age at 50% selectivity
+	init_bounded_number gh(0.0001,2.,1);             //SD in selectivity
 	init_bounded_number qtil(0.0001,0.999,1);	   //Parameter relating p to q
-	init_bounded_number b(0.0001,2.,1);		 //Parameter relating p to q	 
+	init_bounded_number b(0.0001,3.,1);		 //Parameter relating p to q	 
 	init_bounded_number N(5,500.,1);	         //Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
-	 
+	
 	number a;
-	number Z;
+	number M;
  	vector Si(1,n);
         vector Betai(1,n);
  	vector Ri(1,n);		
@@ -65,15 +65,15 @@ PARAMETER_SECTION
 	vector qvec(1,n);
 	vector pPrime(1,n);
 	vector log_resid(1,n);
-	
+
 	objective_function_value f;
 
 PROCEDURE_SECTION
 	getQi(); 	//Calls getPi 
 	getpPrime();
 	calcObjectiveFunction();
-
-	
+	if (mceval_phase()) mcOutput();
+		
 FUNCTION calcObjectiveFunction
  {
        //Calculate negative log likelihood from T4.4 
@@ -112,37 +112,39 @@ FUNCTION void getpPrime()
 
 FUNCTION void getPi()
   {
-		//Function to estimate proportions at age and sampled proportions at age
-		//This function is called by getQi()
+		//Function to estimate proportions at age and sampled proportions at age. 		
+		//This is an equilibrium model with the population in equilibrium with constant fishing mortality
+                //This function is called by getQi()
 		
 		//Declare and initialize variables
 		int j;
-		dvariable surv; 
+		dvar_vector surv(1,n); 
+		
 		dvariable aminus;
 		Si.initialize(); Betai.initialize(); Ri.initialize(); pvec.initialize(); qvec.initialize();
-               		
-		//Proportions at age -- RF thinks the F component of Z needs to be modified by the selectivity
-		//Survivorship at age	 Eq. T6.1
-		Z=mfexp(log_Z);
-		surv=mfexp(-Z); 
+               	
+               	//1. Logistic selectivity
+               	Betai = plogis<dvar_vector>(age, ah,gh);
+
+		//2. Get fished survival rate at age 
+		M=mfexp(log_M);
+		for(j=1; j<=n; j++) surv(j)=mfexp(-M - Betai(j)*Fish); 
+		
+		//3. Get survivorship -- this is eqm vulnerable numbers so no need for selectivity when calculating pi
 		Si(1)=1.;
-		for(j=1+1; j<=n; j++) Si(j)=surv*Si(j-1);
-		Si(n) /=(1. - surv);
-			if(debug) {
-				COUT(Z);
+		for(j=2; j<=n; j++)  Si(j)=Si(j-1)*surv(j-1);  
+		Si(n) /=(1. - surv(n));
+		
+		if(debug) {
+				COUT(Fish);
+				COUT(M);
 			        COUT(surv);
 				COUT(Si);
+				COUT(Betai);
+				COUT(ah);
+				COUT(gh);
 			}
-			 
-		//Selectivity	Eq T6.2
-		aminus=A-1;
-		Betai=1.; //selectivity - fill with 1: ages < A overwritten in next line 
-		for(j=1; j<=aminus; j++) Betai(j) = 1. - (1.-beta1) * pow(((A-j)/aminus),alpha);
-			     if(debug) {
-			     	COUT(Betai);
-			   	COUT(beta1);
-				COUT(alpha);
-			   }
+				
 		//Recruits to each age class -- placeholder -- add time and anomalies later 
 		Ri = rbar;	  //Eq T6.3
 		
@@ -165,6 +167,11 @@ FUNCTION void getQi()
        		if(debug) COUT(qvec);
   }
 
+FUNCTION mcOutput
+  // Output parameters sampled; printed to 'cout' during the '-eval' phase.
+  // Pipe to a file, such as vbmc.dat. Each line has 6 values.
+    cout << log_M << " " << ah << " " << gh << " " << qtil << " "<< b << " "<< N << " "<< f << endl;
+    
 //______________________________
 //Functions to link p and q -- overloaded
 //______________________________
@@ -240,28 +247,32 @@ REPORT_SECTION
 	report<<"#Objective function value"<<endl;
 	REPORT(f);
 	report<<"#Data"<<endl;
+	REPORT(Fish);
 	REPORT(yObs);
 	REPORT(xi);
 	REPORT(age);
 	report<<"#Estimated Parameters"<<endl;
-	REPORT(log_Z);
-	REPORT(beta1);
-	REPORT(alpha);
+	REPORT(log_M);
+	REPORT(ah);
+	REPORT(gh);
 	REPORT(qtil);
 	REPORT(b);
 	REPORT(a);
 	REPORT(N);
 	report<<"#Model Dimensions"<<endl;
 	REPORT(n);
-	REPORT(A);
 	report<<"#Other variables"<<endl;
-	REPORT(Z);
+	REPORT(M);
 	REPORT(Si);
 	REPORT(Betai);
 	REPORT(rbar);
 	REPORT(Ri);
 	REPORT(pvec);
 	REPORT(qvec);
+	report << "$mcnames" << endl;
+	report << "logM ah gh qtil b N fval" << endl;
+ 	report << "$mcest" << endl;
+	report<< log_M << " " << ah << " " << gh << " " << qtil << " "<< b << " "<< N << " "<< f << endl;
 	  	
 GLOBALS_SECTION
 	 #undef REPORT

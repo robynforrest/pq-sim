@@ -198,6 +198,16 @@ panel.hist <- function(x, ...){
  plotFitPairs <- function(Pars) {
 	 pairs(Pars,pch=20,upper.panel=panel.smooth,diag.panel=panel.hist, lower.panel=panel.smooth)
   }
+  
+  plotBox <- function(Pars) {
+  
+  
+  }
+  
+  plotTrace <- function(Pars) {
+  
+  
+  }
 
 #_____________________________________________
 #ADMB FUNCTIONS
@@ -355,5 +365,13 @@ fitSel<-function() {
  
   fitPairsmc <- function() {
         plotFitPairs(parEstmc)
+ }
+ 
+ mcTrace <- function() {
+ 
+ }
+ 
+ mcBox <- function() {
+ 
  }
 

@@ -58,10 +58,12 @@ grid 1 4 sticky=W
     
    # "MCMC"
 	vector length=2 names="mcsamples mcthin" labels="MCMCsamples MCsave" \
-	  values="500000 500" width=15 sticky=W
-	grid 1 4 sticky=W
+	  values="100000 100" width=15 sticky=W
+	grid 1 6 sticky=W
 	button text="Simulate Data and Run MCMC Estimation" function=callADMBmc action=callADMBmc bg=palegreen sticky=SW
+	button text="Parameters" function=mcBox action=mcBox bg=lightblue sticky=SW
+	button text="Pairs" function=fitPairsmc action=fitPairsmc bg=lightblue sticky=SW
 	button text="Fitted proportions" function=fitPropmc action=fitPropmc bg=lightblue sticky=SW
 	button text="Fitted Selectivity" function=fitSelmc action=fitSelmc bg=lightblue sticky=SW
-	button text="Pairs" function=fitPairsmc action=fitPairsmc bg=lightblue sticky=SW
+	button text="Trace" function=mcTrace action=mcTrace bg=lightblue sticky=SW
      

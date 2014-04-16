@@ -13,12 +13,12 @@ grid 1 7 sticky=W
  
 grid 1 7 sticky=W
   # design
-  vector length=1 names="n" labels="n" values="50"
+  vector length=2 names="n Fish" labels="n F" values="50 0.1"
   null
   # parameters
-  vector length=7 sticky=W names="M Fish ah gh qtil b N" \
-    labels="M Fish ah gh qtil b N" \
-    values="0.1 0.1 10 0.2 0.01 0.5 100"
+  vector length=6 sticky=W names="M ah gh qtil b N" \
+    labels="M ah gh qtil b N" \
+    values="0.1 10 0.2 0.01 0.5 100"
   null
  vector length=1 names=rbar labels=Rbar values=1.0
   null  
@@ -57,8 +57,8 @@ grid 1 4 sticky=W
     check name=onePage checked=TRUE text="Single\nPage" sticky=ES
     
    # "MCMC"
-	vector length=2 names="mcsamples mcthin" labels="MCMCsamples MCsave" \
-	  values="100000 100" width=15 sticky=W
+	vector length=3 names="mcsamples mcthin mcburn" labels="MCMCsamples MCsave MCBurnin" \
+	  values="100000 100 10" width=15 sticky=W
 	grid 1 6 sticky=W
 	button text="Simulate Data and Run MCMC Estimation" function=callADMBmc action=callADMBmc bg=palegreen sticky=SW
 	button text="Parameters" function=mcBox action=mcBox bg=lightblue sticky=SW

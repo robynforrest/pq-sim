@@ -2,6 +2,7 @@ echo off
 del variance /Q /F
 del sims /Q /F
 del eigv.rpt /Q /F
+del *.csv /Q /F
 del *.cpp /Q /F
 del *.bar /Q /F
 del *.cov /Q /F
@@ -12,6 +13,7 @@ del *.log /Q /F
 del *.aux /Q /F
 del *.out /Q /F
 del *.eva /Q /F
+del *.ecm /Q /F
 del *.htp /Q /F
 del *.obj /Q /F
 del *.par /Q /F

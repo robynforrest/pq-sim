@@ -10,7 +10,7 @@
 rm(list=ls(all=T))
 graphics.off()
 require(PBSmodelling)
-source("read.admb.R")	  #Martell code for reading rep file
+require(MCMCpack)
 
 #_____________________________________________
 #GUI FUNCTIONS
@@ -179,7 +179,6 @@ plotFit <- function(age,sim,est,ii,typ,nam,onePg=FALSE, Xlab="", Ylab=""){
 		if (par()$mfg[2]==1) axis(2,tick=FALSE,mgp=c(1.75,0.5,0),las=1)
 	}
 	lines(age,est,type="o",pch=20,cex=2,col=2)
-	legend("topright", legend=c("Sim","Est"),col=c(1,2), pch=c(15,19), bty="n", cex=1.1,inset=0.05)
 	mtext(paste("Sample",ii), side=3, outer=F, line=-1.25, adj=ifelse(onePg&&typ!="h",0.05,0.5))
 	mtext("Age", side=1, outer=T, line=ifelse(onePg,2,-0.05), cex=1.3)
 	mtext("Proportion", side=2, outer=T, line=ifelse(onePg,2.5,0.5), cex=1.3)
@@ -196,18 +195,136 @@ panel.hist <- function(x, ...){
   }
  
  plotFitPairs <- function(Pars) {
-	 pairs(Pars,pch=20,upper.panel=panel.smooth,diag.panel=panel.hist, lower.panel=panel.smooth)
+	 pairs(Pars,pch=".",upper.panel=panel.smooth,diag.panel=panel.hist, lower.panel=panel.smooth)
   }
   
-  plotBox <- function(Pars) {
+#Call the function to plot selectivity at age
+fitSel<-function() {
+	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
+	getWinVal(scope="L");
+	graphcount<-0
+	if (onePage) {
+		rc = .findSquare(ns)
+		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
+	} else {
+		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
+	}
+	for(i in 1:ns) {
+		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity",onePg=onePage, Xlab="", Ylab="")
+		if(!onePage && graphcount==4) {
+			if(ns>4){
+				windows()
+				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
+				graphcount <-0} # end if
+		}# end if
+	} #end for
+} #end function
+
+ fitPairs <- function() {
+       plotFitPairs(parEst)
+ }
+ 
+ #Call the function to plot proportions at age
+ fitProp<-function() {
+ 	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
+ 	getWinVal(scope="L");
+ 	graphcount<-0
+ 	if (onePage) {
+ 		rc = .findSquare(ns)
+ 		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
+ 	} else {
+ 		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
+ 	}
+ 	for(i in 1:ns) {
+ 		graphcount<-graphcount+1
+ 		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age",onePg=onePage, Xlab="", Ylab="")
+ 		if(!onePage && graphcount==4) {
+ 			if(ns>4){
+ 				windows()
+ 				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
+ 				graphcount <-0} # end if
+ 		}# end if
+ 	} #end for
+ } #end function
+
+#______________________________________________
+#MCMC plotting functions
+ #Call the function to plot selectivity at age
+ fitSelmc<-function() {
+ 	getWinVal(scope="L");
+ 	mcmcData <- window(mcmc(selEstmc), start=mcburn, thin=1)
+ 	par(mfrow=c(1,1))
+ 	medSel <- vector(length=n)
+ 	for(i in 1:n) medSel[i] <- median(mcmcData[,i]) #get median at each age
+ 	
+ 	matplot(1:n,t(mcmcData), type="l", xlab="Age", ylab="Proportion", col="darkgray", las=1)
+ 	lines(1:n,medSel, col=2,lwd=2)
+ 	lines(1:n,betai, col=1,lwd=2)
+ 	legend("right", legend=c("MCMC Samples","MCMC Median", "True"), col=c("darkgray",2:1), lty=1, lwd=2, bty="n")
+ 		
+ } #end function
+
+ fitPropmc<-function() {
+  	par(mfrow=c(1,1))
+  	getWinVal(scope="L");
+  	mcmcData <- window(mcmc(ymatEstmc), start=mcburn, thin=1)
+  	medY <- vector(length=n)
+  	for(i in 1:n) medY[i] <- median( mcmcData[,i])
+  	plotFit(1:n,yvec, medY,1, "h", "Proportions-at-age",onePg=TRUE, Xlab="Age", Ylab="Proportions")
+  	legend("topright",legend=c("True","MCMC Median"), col=1:2, lwd=2, bty="n", lty=1)
+  } #end function
   
-  
-  }
-  
-  plotTrace <- function(Pars) {
-  
-  
-  }
+ fitPairsmc <- function() {
+        getWinVal(scope="L");
+        mcmcData <- parEstmc[(mcburn+1):nrow(parEstmc),]
+        plotFitPairs(mcmcData)
+ }
+ 
+ mcTrace <- function() {
+ 	getWinVal(scope="L");
+ 	par(mfrow=c(3,2), mai=c(0.4,0.4,0.2,0.1))
+ 	mcmcData <- window(mcmc(parEstmc), start=mcburn, thin=1)
+ 	
+ 	for(i in 1:6)
+ 	{ 
+ 		mcmcTrace <- as.matrix(mcmcData[,i])
+ 		plot(mcmcTrace,main=colnames(mcmcData)[i],type="l",ylab="",xlab="",axes=F)
+	        box()
+	        at <- seq(0,end(mcmcData)-start(mcmcData),200)
+	        labels <- seq(start(mcmcData),end(mcmcData),200)
+	        axis(1,at=at,labels=labels)
+                axis(2)
+ 	}
+   }
+ 
+ mcBox <- function() {
+ 	getWinVal(scope="L");
+ 	parTrue<-vector(length=6)
+ 	parTrue[1]<-M
+ 	parTrue[2]<-ah
+ 	parTrue[3]<-gh
+ 	parTrue[4]<-qtil
+ 	parTrue[5]<-b
+ 	parTrue[6]<-N
+ 	
+ 	par(mfrow=c(2,3), mai=c(0.4,0.4,0.2,0.1))
+	mcmcData <- window(mcmc(parEstmc), start=mcburn, thin=1)
+	
+	for(i in 1:6)#
+	{ 
+		mcmcTrace <- as.matrix(mcmcData[,i])
+		pname<-colnames(mcmcData)[i]
+		if(i==1) {
+			mcmcTrace <- exp(mcmcTrace)
+			pname<-"M"
+		}	
+		
+		boxplot(mcmcTrace,main=pname,type="l", col="lightgray", ylim=c(0,1.5*max(c(parTrue[i],mcmcTrace[1,])))) #
+		if(i==1) legend("topleft", legend="True", lty=2, lwd=2, col=1, bty="n")
+		abline(h=parTrue[i], lty=2, col=1, lwd=2)
+		box()
+ 	}
+ }
 
 #_____________________________________________
 #ADMB FUNCTIONS
@@ -286,92 +403,14 @@ callADMBmc <- function() {
         system(admbcall,show.output.on.console=F,invisible=F)            
         system("pq.exe -mceval",show.output.on.console=F,invisible=F );
         
-        parEstmc <<- read.table("pqpars.csv", header=T, sep=",")
-        selEstmc  <<- read.table("pqselectivity.csv", header=F, sep=",")
-	ymatEstmc <<- read.table("pqproportions.csv", header=F, sep=",")
+        parEstmc <- read.table("pqpars.csv", header=T, sep=",")
+        selEstmc  <- read.table("pqselectivity.csv", header=F, sep=",")
+	ymatEstmc <- read.table("pqproportions.csv", header=F, sep=",")
+	
+	 parEstmc <<- parEstmc 
+	 selEstmc <<- selEstmc 
+	 ymatEstmc <<- ymatEstmc #[(mcburn+1):nrow(ymatEstmc),]
   }
 
 
-#Call the function to plot proportions at age
-fitProp<-function() {
-	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
-	getWinVal(scope="L");
-	graphcount<-0
-	if (onePage) {
-		rc = .findSquare(ns)
-		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
-	} else {
-		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
-	}
-	for(i in 1:ns) {
-		graphcount<-graphcount+1
-		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age",onePg=onePage, Xlab="", Ylab="")
-		if(!onePage && graphcount==4) {
-			if(ns>4){
-				windows()
-				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
-				graphcount <-0} # end if
-		}# end if
-	} #end for
-} #end function
-
-#Call the function to plot selectivity at age
-fitSel<-function() {
-	oldpar=par(no.readonly=TRUE); on.exit(par(oldpar))
-	getWinVal(scope="L");
-	graphcount<-0
-	if (onePage) {
-		rc = .findSquare(ns)
-		par(mfrow=rc, mar=c(0,0,0,0), oma=c(4,4,2,1)) # All graphs
-	} else {
-		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
-	}
-	for(i in 1:ns) {
-		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity",onePg=onePage, Xlab="", Ylab="")
-		if(!onePage && graphcount==4) {
-			if(ns>4){
-				windows()
-				par(mfcol=c(2,2), oma=c(2,3,1,1), mai=c(.35,.35,.3,.3))
-				graphcount <-0} # end if
-		}# end if
-	} #end for
-} #end function
-
- fitPairs <- function() {
-       plotFitPairs(parEst)
- }
- 
- fitPropmc<-function() {
- 	getWinVal(scope="L");
- 	medY <- vector(length=n)
- 	for(i in 1:n) medY[i] <- median(ymatEstmc[,i])
- 	plotFit(1:n,yvec, medY,1, "h", "Proportions-at-age",onePg=TRUE, Xlab="Age", Ylab="Proportions")
- 	mtext("MCMC Median fitted proportions", side=3, line=1, cex=1.5)
- 	
- } #end function
- 
- #Call the function to plot selectivity at age
- fitSelmc<-function() {
- 	getWinVal(scope="L");
- 	medSel <- vector(length=n)
- 	for(i in 1:n) medSel[i] <- median(selEstmc[,i])
- 	
- 	matplot(1:n,t(selEstmc), type="l", xlab="Age", ylab="Proportion", col="darkgray", las=1)
- 	lines(1:n,medSel, col=2,lwd=2)
- 	lines(1:n,betai, col=1,lwd=2)
- 	legend("topleft", legend=c("MCMC Samples","MCMC Median", "True"), col=c("darkgray",2:1), lty=1, lwd=2, bty="n")
- 		
- } #end function
- 
-  fitPairsmc <- function() {
-        plotFitPairs(parEstmc)
- }
- 
- mcTrace <- function() {
- 
- }
- 
- mcBox <- function() {
- 
- }
 

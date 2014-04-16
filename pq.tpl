@@ -50,9 +50,9 @@ DATA_SECTION
 PARAMETER_SECTION
 	init_bounded_number Phi1(-2.99,1.,1);          	//log_M Natural mortality	      
 	init_bounded_number Phi2(1,n,1);      			//ah Age at 50% selectivity
-	init_bounded_number Phi3(0.000001,3.,1);             	//gh SD in selectivity
-	init_bounded_number Phi4(0.000001,0.999,1);	 	//qtil Parameter relating p to q
-	init_bounded_number Phi5(0.000001,3.,1);			//b Parameter relating p to q	 
+	init_bounded_number Phi3(0.0001,3.,1);             	//gh SD in selectivity
+	init_bounded_number Phi4(0.0001,0.999,1);	 	//qtil Parameter relating p to q
+	init_bounded_number Phi5(0.0001,3.,1);			//b Parameter relating p to q	 
 	init_bounded_number Phi6(5.,500.,1);	         		//N Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
 	
 	//Estimated parameters -- pick them up in initModel() -- some ADMB functions aren't overloaded for init_numbers
@@ -203,6 +203,7 @@ FUNCTION mcOutput
 	  // Output parameters sampled; printed to 'cout' during the '-eval' phase.
 	  // Pipe to a file, such as vbmc.dat. Each line has 6 values.
 	   if(nf==1){
+			cout<<"\n -- RUNNING MCEVAL -- \n"<<endl;
 			ofstream ofs("pqpars.csv");
 			ofs<< "log_M, " << "ah, " << "gh, " << "qtil,"<<" b, "<< " N,"<< "f"<< endl;
 			ofstream ofprop("pqproportions.csv");

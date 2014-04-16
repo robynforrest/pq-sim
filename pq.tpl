@@ -106,11 +106,7 @@ FUNCTION calcObjectiveFunction
        //Build components of objective function
        dvar_vector Npp = N*pPrime;			//N*pPrime
        dvar_vector Nppminus = N*pPrime - 1.;	//N*pPrime - 1
-       //dvar_vector minusxi = -xi;
-      // dvar_vector minusqi = -qvec;
-       //minusxi +=1.; 							// 1-xi
-      // minusqi +=1.; 							// 1-qvec 
-      
+             
       //Calculate objective function
       like1=0.;
       like2=0.;
@@ -121,6 +117,7 @@ FUNCTION calcObjectiveFunction
 		like2 += (1.-xi(i))*log(qvec(i)) + xi(i)*log(1.-qvec(i));
 		} //end if
 	} //end for i
+      
       //Calculate the objective function
      like = like1 - like2 - gammln(N);
     

@@ -20,6 +20,9 @@ sims
 *.par
 *.rep
 *.std
+*.psv
+*.mc2
+*.mcm
 
 .RData
 .RHistory

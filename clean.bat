@@ -1,5 +1,6 @@
 echo off
 del variance /Q /F
+del sims /Q /F
 del eigv.rpt /Q /F
 del *.cpp /Q /F
 del *.bar /Q /F
@@ -25,3 +26,7 @@ del *.b1* /Q /F
 del *.res /Q /F
 del *.d   /Q /F
 del *.eql /Q /F
+del *.hst /Q /F
+del *.mc2 /Q /F
+del *.mcm /Q /F
+del *.psv /Q /F

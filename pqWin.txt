@@ -13,7 +13,7 @@ grid 1 7 sticky=W
  
 grid 1 7 sticky=W
   # design
-  vector length=1 names="n" labels="n" values="70"
+  vector length=1 names="n" labels="n" values="50"
   null
   # parameters
   vector length=7 sticky=W names="M Fish ah gh qtil b N" \
@@ -36,8 +36,8 @@ grid 1 6 sticky=W
   button text="Restart" function=restart  action=restart bg=red
 
 # Simulation of data
-vector length=3 names="ns sz powr" labels="samples bubsize powr" \
-  values="4 0.2 0.5" width=10 sticky=W
+vector length=3 names="ns sz powr" labels="nsamples bubsize powr" \
+  values="25 0.2 0.5" width=10 sticky=W
 
 grid 1 4 sticky=W
   button text="Simulate Data" function=xyGen action=xyGen \
@@ -45,11 +45,23 @@ grid 1 4 sticky=W
   button text="y bubbles" function=yBub action=yBub bg=lightblue
   button text="x bubbles" function=xBub action=xBub bg=lightblue
   button text="Restart" function=restart  action=restart bg=red
-
+  
 # Run ADMB code
-    grid 1 5 sticky=W pady="8 5"
-    button text="Simulate Data and Run Estimation" function=callADMB action=callADMB bg=palegreen sticky=SW
-    button text="Fitted proportions" function=fitProp action=fitProp bg=lightblue sticky=SW
-    button text="Selectivity" function=fitSel action=fitSel bg=lightblue sticky=SW
+  
+  #  "MPD"
+     grid 1 5 sticky=W pady="8 5"
+    button text="Simulate nsamples Datasets and Run MPD Estimation" function=callADMB action=callADMB bg=palegreen sticky=SW
+    button text="Fitted  Proportions" function=fitProp action=fitProp bg=lightblue sticky=SW
+    button text="Fitted  Selectivity" function=fitSel action=fitSel bg=lightblue sticky=SW
     button text="Pairs" function=fitPairs action=fitPairs bg=lightblue sticky=SW
     check name=onePage checked=TRUE text="Single\nPage" sticky=ES
+    
+   # "MCMC"
+	vector length=2 names="mcsamples mcthin" labels="MCMCsamples MCsave" \
+	  values="500000 500" width=15 sticky=W
+	grid 1 4 sticky=W
+	button text="Simulate Data and Run MCMC Estimation" function=callADMBmc action=callADMBmc bg=palegreen sticky=SW
+	button text="Fitted proportions" function=fitPropmc action=fitPropmc bg=lightblue sticky=SW
+	button text="Fitted Selectivity" function=fitSelmc action=fitSelmc bg=lightblue sticky=SW
+	button text="Pairs" function=fitPairsmc action=fitPairsmc bg=lightblue sticky=SW
+     

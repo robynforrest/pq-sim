@@ -1,7 +1,7 @@
 #Initial parameter values for logM, beta1, alpha, qtil, b and N
--2.525729
-2
-0.5
+-2.302585
+10
+0.2
 0.01
 0.5
 100

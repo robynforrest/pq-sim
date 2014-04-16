@@ -13,12 +13,12 @@ grid 1 7 sticky=W
  
 grid 1 7 sticky=W
   # design
-  vector length=2 names="n A" labels="n A" values="70 50"
+  vector length=1 names="n" labels="n" values="50"
   null
   # parameters
-  vector length=6 sticky=W names="Z beta1 alpha qtil b N" \
-    labels="Z beta1 alpha qtil b N" \
-    values="0.1 0.1 2.0 0.01 0.5 100"
+  vector length=7 sticky=W names="M Fish ah gh qtil b N" \
+    labels="M Fish ah gh qtil b N" \
+    values="0.1 0.1 10 0.2 0.01 0.5 100"
   null
  vector length=1 names=rbar labels=Rbar values=1.0
   null  
@@ -36,8 +36,8 @@ grid 1 6 sticky=W
   button text="Restart" function=restart  action=restart bg=red
 
 # Simulation of data
-vector length=3 names="ns sz powr" labels="samples bubsize powr" \
-  values="4 0.2 0.5" width=10 sticky=W
+vector length=3 names="ns sz powr" labels="nsamples bubsize powr" \
+  values="25 0.2 0.5" width=10 sticky=W
 
 grid 1 4 sticky=W
   button text="Simulate Data" function=xyGen action=xyGen \
@@ -45,11 +45,23 @@ grid 1 4 sticky=W
   button text="y bubbles" function=yBub action=yBub bg=lightblue
   button text="x bubbles" function=xBub action=xBub bg=lightblue
   button text="Restart" function=restart  action=restart bg=red
-
+  
 # Run ADMB code
-    grid 1 5 sticky=W pady="8 5"
-    button text="Simulate Data and Run Estimation" function=callADMB action=callADMB bg=palegreen sticky=SW
-    button text="Fitted proportions" function=fitProp action=fitProp bg=lightblue sticky=SW
-    button text="Selectivity" function=fitSel action=fitSel bg=lightblue sticky=SW
+  
+  #  "MPD"
+     grid 1 5 sticky=W pady="8 5"
+    button text="Simulate nsamples Datasets and Run MPD Estimation" function=callADMB action=callADMB bg=palegreen sticky=SW
+    button text="Fitted  Proportions" function=fitProp action=fitProp bg=lightblue sticky=SW
+    button text="Fitted  Selectivity" function=fitSel action=fitSel bg=lightblue sticky=SW
     button text="Pairs" function=fitPairs action=fitPairs bg=lightblue sticky=SW
     check name=onePage checked=TRUE text="Single\nPage" sticky=ES
+    
+   # "MCMC"
+	vector length=2 names="mcsamples mcthin" labels="MCMCsamples MCsave" \
+	  values="500000 500" width=15 sticky=W
+	grid 1 4 sticky=W
+	button text="Simulate Data and Run MCMC Estimation" function=callADMBmc action=callADMBmc bg=palegreen sticky=SW
+	button text="Fitted proportions" function=fitPropmc action=fitPropmc bg=lightblue sticky=SW
+	button text="Fitted Selectivity" function=fitSelmc action=fitSelmc bg=lightblue sticky=SW
+	button text="Pairs" function=fitPairsmc action=fitPairsmc bg=lightblue sticky=SW
+     

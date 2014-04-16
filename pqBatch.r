@@ -49,12 +49,27 @@ conv2p <- function(v, rm.zero=TRUE) {
 pqSim <- function() {
 	  getWinVal(scope="L");
 	  age = 1:n;
-	  Si = exp(-Z*(age-1)); Si[n] = Si[n]/(1 - exp(-Z))
-	  betai = rep(1,n); 
-	  ii = 1:(A-1);
-	  betai[ii] = 1 - (1-beta1)*((A-ii)/(A-1))^alpha;
+	  Zi <- vector(length=n) #Total mortality at age
+	  survi <- vector(length=n) #Eqm fished survival rate at age
+	  Si <- vector(length=n)	#Eqm fished survivorship at age
+	  
+	  #Selectivity
+	  betai <- plogis(age,ah,gh)
+	  
+	  #Total mortality
+	  Zi <- M + betai*Fish
+		  
+	  #Survival rate -- at eqm with constant mortality
+	 survi <- exp(-Zi)
+	  
+	  #Eqm survivorship
+	  Si[1]<-1
+	  for(j in 2:n) Si[j] <- Si[j-1]*survi[j-1]
+            Si[n] = Si[n]/(1 - survi[n])
+	  
 	  Ri = rep(1,n);
-	  pvec = Si*betai*Ri; pvec = pvec / sum(pvec);
+	  pvec = Si*betai*Ri;    
+	  pvec = pvec / sum(pvec);	 
 	  a = logit(qtil) + b*logit(1/n); # pbar = 1/n	   T2.3
 
 	  setWinVal(list(a=a))
@@ -97,7 +112,7 @@ xySim <- function() {
   yvec[zvec] = yy;
   xvec <<- xvec; 
   yvec <<- yvec; 
-  return(rbind(xvec,yvec)); };
+  return(yvec); };
 
 # Simulate ns sample vectors y'
 xyGen <- function() {
@@ -154,9 +169,9 @@ xBub <- function() {
   plotBubbles(xB,clrs=c("black","red","red"),size=sz,
     powr=powr,prettyaxis=TRUE); };
 
-plotFit <- function(age,sim,est,ii,typ,nam,onePg=FALSE){
+plotFit <- function(age,sim,est,ii,typ,nam,onePg=FALSE, Xlab="", Ylab=""){
 	# barplot(sim, names.arg=paste(age), las=1,col="gray", xlab="Age", ylab="Proportion", ylim=c(0,0.15)) 
-	plot(age,sim, type=typ, las=1,col=1, xlab="", ylab="", lwd=2, xaxt=ifelse(onePg,"n","s"), yaxt=ifelse(onePg,"n","s"))#, ylim=c(0,0.15)
+	plot(age,sim, type=typ, las=1,col=1, xlab=Xlab, ylab=Ylab, lwd=2, xaxt=ifelse(onePg,"n","s"), yaxt=ifelse(onePg,"n","s"), ylim=c(0, 1.1*max(sim,est)))#, ylim=c(0,0.15)
 	if (onePg) {
 		axis(1,labels=FALSE,tcl=0.5)
 		axis(2,labels=FALSE,tcl=0.5)
@@ -195,24 +210,22 @@ write_dat_pin=function(yobs)
 	write("#Parameters and simulated data from p-q simulation",dfile,1)
 	write("#n Maximum age class",dfile,1,append=T)
 	write(n,dfile,1,append=T)
-	write("#A Age class with full selectivity, where Bi = 1 for A <= i <= n",dfile,1,append=T)
-	write(A,dfile,1,append=T)
 	write("#rbar Average recruitment ",dfile,1,append=T)
 	write(rbar,dfile,1,append=T)
+	write("#Fish Constant fishing mortality -- will be estimated eventually ",dfile,1,append=T)
+	write(Fish,dfile,1,append=T)
 	write("#yObs Simulated age proportions from Bernoulli Dirichlet distribution",dfile,1,append=T)
 	write(yobs,dfile,1,append=T)
-	write("#ubZ Upper bound on log_Z",dfile,1,append=T)
-	write(log((3.*Z)),dfile,1,append=T)
 	write(" #debug	Switches on cout statements",dfile,1,append=T)
 	write(0,dfile,1,append=T)
 	write("#eof",dfile,1,append=T)
 	write(999,dfile,1,append=T)
 
 	dfile="pq.pin"
-	write("#Initial parameter values for logZ, beta1, alpha, qtil, b and N",dfile,1)
-	write(log(Z),dfile,1,append=T)
-	write(beta1,dfile,1,append=T)
-	write(alpha,dfile,1,append=T)
+	write("#Initial parameter values for logM, beta1, alpha, qtil, b and N",dfile,1)
+	write(log(M),dfile,1,append=T)
+	write(ah,dfile,1,append=T)
+	write(gh,dfile,1,append=T)
 	write(qtil,dfile,1,append=T)
 	write(b,dfile,1,append=T)
 	write(N,dfile,1,append=T)
@@ -221,12 +234,13 @@ write_dat_pin=function(yobs)
 
 #_____________________________________________
 #This function is called from the GUI
+#MPD
 callADMB <- function() {
 	getWinVal(scope="L");
 	ymatEst <- matrix(0,nrow=n, ncol=ns+1)
 	selEst  <- matrix(0,nrow=n, ncol=ns+1)
 	parEst <-  matrix(0,nrow=ns, ncol=6)
-	colnames(parEst) <- c("logZ", "beta1","alpha","qtil","b","N")
+	colnames(parEst) <- c("logM", "ah","gh","qtil","b","N")
 	xyGen(); #generate ns samples 
 	
 	#Loop over ns samples
@@ -236,19 +250,37 @@ callADMB <- function() {
         	system("pq.exe -maxfn 2000 -nox",show.output.on.console=F,invisible=F)
 		
 		#Read the report file from ADMB and put proportions at age and selectivity from this run into a matrix
-		out<-read.admb("pq")
+		out<-readList("pq.rep")
 		if(i==1) {
 			ymatEst[,1] <- out$age
 			selEst[,1]    <- out$age}
 
 		ymatEst[,(i+1)] <- out$pvec
 		selEst[,(i+1)] <- out$Betai
-		parEst[i,] <-c(out$log_Z, out$beta1, out$alpha, out$qtil, out$b, out$N)
+		parEst[i,] <-c(out$log_M, out$ah, out$gh, out$qtil, out$b, out$N)
 	}
-       ymatEst<<-ymatEst
-       selEst <<- selEst
        parEst <<- parEst
+       selEst <<- selEst
+       ymatEst<<-ymatEst
   }
+
+#_____________________________________________
+#This function is called from the GUI
+#MCMC
+callADMBmc <- function() {
+	getWinVal(scope="L");
+		
+	yprime <- xySim();
+	write_dat_pin(yprime);
+        admbcall <- paste("pq.exe -maxfn 2000 -mcmc", mcsamples, "-mcsave", mcthin, "-mcscale", mcsamples)
+        system(admbcall,show.output.on.console=F,invisible=F)            
+        system("pq.exe -mceval",show.output.on.console=F,invisible=F );
+        
+        parEstmc <<- read.table("pqpars.csv", header=T, sep=",")
+        selEstmc  <<- read.table("pqselectivity.csv", header=F, sep=",")
+	ymatEstmc <<- read.table("pqproportions.csv", header=F, sep=",")
+  }
+
 
 #Call the function to plot proportions at age
 fitProp<-function() {
@@ -263,7 +295,7 @@ fitProp<-function() {
 	}
 	for(i in 1:ns) {
 		graphcount<-graphcount+1
-		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age",onePg=onePage)
+		plotFit(ymatEst[,1],ymat[,i], ymatEst[,(i+1)],i, "h", "Proportions-at-age",onePg=onePage, Xlab="", Ylab="")
 		if(!onePage && graphcount==4) {
 			if(ns>4){
 				windows()
@@ -285,7 +317,7 @@ fitSel<-function() {
 		par(mfrow=c(2,2), oma=c(2,2,1,1), mai=c(.35,.35,.3,.3)) #4 graphs
 	}
 	for(i in 1:ns) {
-		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity",onePg=onePage)
+		plotFit(selEst[,1],betai, selEst[,(i+1)],i, "l", "Selectivity",onePg=onePage, Xlab="", Ylab="")
 		if(!onePage && graphcount==4) {
 			if(ns>4){
 				windows()
@@ -297,5 +329,31 @@ fitSel<-function() {
 
  fitPairs <- function() {
        plotFitPairs(parEst)
+ }
+ 
+ fitPropmc<-function() {
+ 	getWinVal(scope="L");
+ 	medY <- vector(length=n)
+ 	for(i in 1:n) medY[i] <- median(ymatEstmc[,i])
+ 	plotFit(1:n,yvec, medY,1, "h", "Proportions-at-age",onePg=TRUE, Xlab="Age", Ylab="Proportions")
+ 	mtext("MCMC Median fitted proportions", side=3, line=1, cex=1.5)
+ 	
+ } #end function
+ 
+ #Call the function to plot selectivity at age
+ fitSelmc<-function() {
+ 	getWinVal(scope="L");
+ 	medSel <- vector(length=n)
+ 	for(i in 1:n) medSel[i] <- median(selEstmc[,i])
+ 	
+ 	matplot(1:n,t(selEstmc), type="l", xlab="Age", ylab="Proportion", col="darkgray", las=1)
+ 	lines(1:n,medSel, col=2,lwd=2)
+ 	lines(1:n,betai, col=1,lwd=2)
+ 	legend("topleft", legend=c("MCMC Samples","MCMC Median", "True"), col=c("darkgray",2:1), lty=1, lwd=2, bty="n")
+ 		
+ } #end function
+ 
+  fitPairsmc <- function() {
+        plotFitPairs(parEstmc)
  }
 

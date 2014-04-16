@@ -13,10 +13,9 @@ DATA_SECTION
 
 	   //Read in parameters from data file
 	   init_int n;	//Maximum age class				
-	   init_int A;	//Age class with full selectivity, where Bi = 1 for A <= i <= n
 	   init_number rbar; //Average recruitment
+	   init_number Fish; //constant fishing mortality -- estimate eventually
 	   init_vector yObs(1,n);
-	   init_number ubZ; //upper bound of log_Z
 	   init_int debug; //debugging flag
 	   init_int eof;	  //end of file marker
 
@@ -49,57 +48,82 @@ DATA_SECTION
 	END_CALCS
 
 PARAMETER_SECTION
-	init_bounded_number log_Z(-3.5,ubZ,1);              //Total mortality (F+M)	      
-	init_bounded_number beta1(0.0001,0.999,1);      //Parameter used to build Beta_i Fishery selectivity on age class i (0 < beta1 <= 1) 		#theta  2
-	init_bounded_number alpha(0.0001,5.,1);             //Selectivity parameter
-	init_bounded_number qtil(0.0001,0.999,1);	   //Parameter relating p to q
-	init_bounded_number b(0.0001,2.,1);		 //Parameter relating p to q	 
-	init_bounded_number N(5,500.,1);	         //Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
-	 
+	init_bounded_number Phi1(-2.99,1.,1);          	//log_M Natural mortality	      
+	init_bounded_number Phi2(1,n,1);      			//ah Age at 50% selectivity
+	init_bounded_number Phi3(0.000001,3.,1);             	//gh SD in selectivity
+	init_bounded_number Phi4(0.000001,0.999,1);	 	//qtil Parameter relating p to q
+	init_bounded_number Phi5(0.000001,3.,1);			//b Parameter relating p to q	 
+	init_bounded_number Phi6(5.,500.,1);	         		//N Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
+	
+	//Estimated parameters -- pick them up in initModel() -- some ADMB functions aren't overloaded for init_numbers
+	number log_M;  
+	number ah;
+	number gh;
+	number qtil;
+	number b;
+	number N;
+	
+	//Derived parameters
 	number a;
-	number Z;
+	number M;
  	vector Si(1,n);
         vector Betai(1,n);
  	vector Ri(1,n);		
  	vector pvec(1,n);		
 	vector qvec(1,n);
 	vector pPrime(1,n);
-	vector log_resid(1,n);
-	
+	//vector log_resid(1,n);
+
 	objective_function_value f;
+	sdreport_number sdreport;
 
 PROCEDURE_SECTION
+	initModel();
 	getQi(); 	//Calls getPi 
 	getpPrime();
 	calcObjectiveFunction();
+	sdreport=f;
+	if(mceval_phase()) mcOutput();
+		
+FUNCTION initModel
+	 log_M = Phi1;              //Natural mortality	      
+	 ah = Phi2;      //Age at 50% selectivity
+	 gh = Phi3;             //SD in selectivity
+	 qtil = Phi4;	   //Parameter relating p to q
+	 b = Phi5;		 //Parameter relating p to q	 
+	 N = Phi6;	 
 
-	
 FUNCTION calcObjectiveFunction
  {
        //Calculate negative log likelihood from T4.4 
        //PSEUDOCODE FOR LIKELIHOOD
-       //like = sum(gammaln(N*pPrime) - (N*pPrime - 1)*log(yObs)) - sum((1 - xi)*log(qvec) + xi*log(1-qvec) - gammaln(N));
+       //like = sum(gammaln(N*pPrime) - (N*pPrime - 1)*log(yObs)) - sum((1 - xi)*log(qvec) + xi*log(1-qvec)) - gammaln(N);
        
-       dvariable like1;	   //First part of objective function - sum over pPrime >0
-       dvariable like;
+       dvariable like1;	 //First part of objective function - sum over pPrime >0
+       dvariable like2;	//Second part of objective function - sum over pPrime >0
+      dvariable like;
        
        //Build components of objective function
        dvar_vector Npp = N*pPrime;			//N*pPrime
        dvar_vector Nppminus = N*pPrime - 1.;	//N*pPrime - 1
-       dvar_vector minusxi = -xi;
-       dvar_vector minusqi = -qvec;
-       minusxi +=1.; 							// 1-xi
-       minusqi +=1.; 							// 1-qvec 
+       //dvar_vector minusxi = -xi;
+      // dvar_vector minusqi = -qvec;
+       //minusxi +=1.; 							// 1-xi
+      // minusqi +=1.; 							// 1-qvec 
       
       //Calculate objective function
       like1=0.;
-      //Calculate like1, the first part of objective function :: only for pPrime>0
+      like2=0.;
+      //Calculate like1 and like2, the first parts of objective function :: only for pPrime>0
       for(int i=1; i<=n;i++){
-	   if(pPrime(i)>0) like1 += gammln(Npp(i)) - (Nppminus(i))*log(yObs(i));
-      }
+	   if(pPrime(i)>0) {
+	   	like1 += gammln(Npp(i)) - (Nppminus(i))*log(yObs(i)); //
+		like2 += (1.-xi(i))*log(qvec(i)) + xi(i)*log(1.-qvec(i));
+		} //end if
+	} //end for i
       //Calculate the objective function
-      like = like1 - sum((minusxi)*log(qvec) + elem_prod(xi,log(minusqi)) - gammln(N));
-      
+     like = like1 - like2 - gammln(N);
+    
       f = like;
       nf++;
   }// end function
@@ -112,41 +136,49 @@ FUNCTION void getpPrime()
 
 FUNCTION void getPi()
   {
-		//Function to estimate proportions at age and sampled proportions at age
-		//This function is called by getQi()
+		//Function to estimate proportions at age and sampled proportions at age. 		
+		//This is an equilibrium model with the population in equilibrium with constant fishing mortality
+                //This function is called by getQi()
 		
 		//Declare and initialize variables
 		int j;
-		dvariable surv; 
+		dvar_vector Z(1,n); 
+		dvar_vector surv(1,n); 
+				
 		dvariable aminus;
-		Si.initialize(); Betai.initialize(); Ri.initialize(); pvec.initialize(); qvec.initialize();
-               		
-		//Proportions at age -- RF thinks the F component of Z needs to be modified by the selectivity
-		//Survivorship at age	 Eq. T6.1
-		Z=mfexp(log_Z);
+		Si.initialize(); Betai.initialize(); Ri.initialize(); pvec.initialize(); qvec.initialize(); surv.initialize(); Z.initialize(); 
+               	
+               	//1. Logistic selectivity
+               	Betai = plogis<dvar_vector>(age,ah,gh);
+       		
+       		//2. Get fished survival rate at age 
+		M=mfexp(log_M);
+		
+		//Get Zi = M + Betai*Fi , where fishing mortality at age is modified by selectivity at age (0 < Betai <=1)
+		Z=M;
+		Z+=Betai*Fish;
 		surv=mfexp(-Z); 
+				
+		//3. Get survivorship -- a function of natural mortality, fishing mortality and selectivity
 		Si(1)=1.;
-		for(j=1+1; j<=n; j++) Si(j)=surv*Si(j-1);
-		Si(n) /=(1. - surv);
-			if(debug) {
-				COUT(Z);
+		for(j=2; j<=n; j++)  Si(j)=Si(j-1)*surv(j-1);  
+		Si(n) /=(1. - surv(n));
+		
+		if(debug) {
+				COUT(Fish);
+				COUT(M);
+				COUT(Z)
 			        COUT(surv);
 				COUT(Si);
+				COUT(Betai);
+				COUT(ah);
+				COUT(gh);
 			}
-			 
-		//Selectivity	Eq T6.2
-		aminus=A-1;
-		Betai=1.; //selectivity - fill with 1: ages < A overwritten in next line 
-		for(j=1; j<=aminus; j++) Betai(j) = 1. - (1.-beta1) * pow(((A-j)/aminus),alpha);
-			     if(debug) {
-			     	COUT(Betai);
-			   	COUT(beta1);
-				COUT(alpha);
-			   }
+				
 		//Recruits to each age class -- placeholder -- add time and anomalies later 
 		Ri = rbar;	  //Eq T6.3
 		
-		//Get pvec -- proportions at age in the population
+		//Get pvec -- vulnerable proportions at age in the population
 		pvec = elem_prod(elem_prod(Si,Betai),Ri); 
 		pvec /= sum(pvec);   //EqT6.4	 -- normalise
 			if(debug) COUT(pvec);
@@ -161,10 +193,37 @@ FUNCTION void getQi()
 	 a = logit(qtil) + b*logit(invn);
 
 	qvec=p2q(pvec, a, b);      //EqT2.6
-	        if(debug) COUT(a);
+		       
+	       if(debug) COUT(a);
        		if(debug) COUT(qvec);
   }
 
+FUNCTION mcOutput
+ {
+	  // Output parameters sampled; printed to 'cout' during the '-eval' phase.
+	  // Pipe to a file, such as vbmc.dat. Each line has 6 values.
+	   if(nf==1){
+			ofstream ofs("pqpars.csv");
+			ofs<< "log_M, " << "ah, " << "gh, " << "qtil,"<<" b, "<< " N,"<< "f"<< endl;
+			ofstream ofprop("pqproportions.csv");
+			ofstream ofsel("pqselectivity.csv");
+	   }
+
+	  ofstream ofs("pqpars.csv",ios::app); 
+	  ofs << log_M << ", " << ah << ", " << gh << ", " << qtil << " ,"<< b << ", "<< N << " ,"<< f << endl;
+	  
+	 //Do this with a loop -- ADMB putting an NA in first column otherwise
+	 ofstream ofsel("pqselectivity.csv",ios::app);
+	  for(int jj=1; jj<=n;jj++) {
+	  	if(jj<n) ofsel<<Betai(jj)<<","; 
+	  	if(jj==n) ofsel<<Betai(jj)<<endl;
+          }
+          ofstream ofprop("pqproportions.csv",ios::app);
+	  for(int jj=1; jj<=n;jj++) {
+		if(jj<n) ofprop<<pvec(jj)<<","; 
+		if(jj==n) ofprop<<pvec(jj)<<endl;
+          }
+  }
 //______________________________
 //Functions to link p and q -- overloaded
 //______________________________
@@ -238,35 +297,36 @@ FUNCTION dvar_vector invlogit(const dvar_vector x)
 
 REPORT_SECTION
 	report<<"#Objective function value"<<endl;
-	REPORT(f);
+	report<<"$f"<<"\n"<<f<<endl;
 	report<<"#Data"<<endl;
-	REPORT(yObs);
-	REPORT(xi);
-	REPORT(age);
+	report << "$Fish" << "\n" << Fish <<endl;
+	report << "$yObs" << "\n" << yObs<<endl;
+	report << "$xi" << "\n" << xi<<endl;
+	report << "$age" << "\n" << age<<endl;
 	report<<"#Estimated Parameters"<<endl;
-	REPORT(log_Z);
-	REPORT(beta1);
-	REPORT(alpha);
-	REPORT(qtil);
-	REPORT(b);
-	REPORT(a);
-	REPORT(N);
+	report << "$log_M" << "\n" <<log_M <<endl;
+	report << "$ah" << "\n" <<ah <<endl;
+	report << "$gh" << "\n" <<gh <<endl;
+	report << "$qtil" << "\n" <<qtil <<endl;
+	report << "$b" << "\n" <<b <<endl;
+	report << "$a" << "\n" <<a <<endl;
+	report << "$N" << "\n" <<N <<endl;
 	report<<"#Model Dimensions"<<endl;
-	REPORT(n);
-	REPORT(A);
+	report << "$n" << "\n" <<n<<endl;
 	report<<"#Other variables"<<endl;
-	REPORT(Z);
-	REPORT(Si);
-	REPORT(Betai);
-	REPORT(rbar);
-	REPORT(Ri);
-	REPORT(pvec);
-	REPORT(qvec);
+	report << "$M" << "\n" <<M <<endl;
+	report << "$Si" << "\n" <<Si <<endl;
+	report << "$Betai" << "\n" <<Betai <<endl;
+	report << "$rbar" << "\n" <<rbar <<endl;
+	report << "$Ri" << "\n" <<Ri <<endl;
+	report << "$pvec" << "\n" <<pvec <<endl;
+	report << "$qvec" << "\n" <<qvec <<endl;
+	report << "$mcnames" << endl;
+	report << "logM ah gh qtil b N fval" << endl;
+ 	report << "$mcest" << endl;
+	report<< log_M << " " << ah << " " << gh << " " << qtil << " "<< b << " "<< N << " "<< f << endl;
 	  	
 GLOBALS_SECTION
-	 #undef REPORT
-	#define REPORT(object) report <<#object <<"\n" << object << endl;
-
 	#undef COUT
 	#define COUT(object) cout << #object "\n" << object <<endl;
 
@@ -285,5 +345,5 @@ TOP_OF_MAIN_SECTION
   gradient_structure::set_NUM_DEPENDENT_VARIABLES(1000000); 	
   gradient_structure::set_GRADSTACK_BUFFER_SIZE(1.e5);  		
   gradient_structure::set_CMPDIF_BUFFER_SIZE(2100000000); 			
-  gradient_structure::set_MAX_NVAR_OFFSET(1000); 	
+  gradient_structure::set_MAX_NVAR_OFFSET(30000000); 	
 

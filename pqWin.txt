@@ -18,7 +18,7 @@ grid 1 7 sticky=W
   # parameters
   vector length=6 sticky=W names="M ah gh qtil b N" \
     labels="M ah gh qtil b N" \
-    values="0.1 10 0.2 0.01 0.5 100"
+    values="0.12 10 0.5 0.01 0.4 100"
   null
  vector length=1 names=rbar labels=Rbar values=1.0
   null  
@@ -58,7 +58,7 @@ grid 1 4 sticky=W
     
    # "MCMC"
 	vector length=3 names="mcsamples mcthin mcburn" labels="MCMCsamples MCsave MCBurnin" \
-	  values="100000 100 10" width=15 sticky=W
+	  values="500000 250 1000" width=15 sticky=W
 	grid 1 6 sticky=W
 	button text="Simulate Data and Run MCMC Estimation" function=callADMBmc action=callADMBmc bg=palegreen sticky=SW
 	button text="Parameters" function=mcBox action=mcBox bg=lightblue sticky=SW

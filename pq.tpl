@@ -52,7 +52,7 @@ PARAMETER_SECTION
 	init_bounded_number Phi2(1,n,1);      			//ah Age at 50% selectivity
 	init_bounded_number Phi3(0.0001,3.,1);             	//gh SD in selectivity
 	init_bounded_number Phi4(0.0001,0.999,1);	 	//qtil Parameter relating p to q
-	init_bounded_number Phi5(0.0001,3.,1);			//b Parameter relating p to q	 
+	init_bounded_number Phi5(0.0001,0.7,1);			//b Parameter relating p to q	 
 	init_bounded_number Phi6(5.,500.,1);	         		//N Effective sample size for Dirichlet distribution -- doesn't work very well if estimating this
 	
 	//Estimated parameters -- pick them up in initModel() -- some ADMB functions aren't overloaded for init_numbers
@@ -114,11 +114,12 @@ FUNCTION calcObjectiveFunction
       for(int i=1; i<=n;i++){
 	   if(pPrime(i)>0) {
 	   	like1 += gammln(Npp(i)) - (Nppminus(i))*log(yObs(i)); //
-		like2 += (1.-xi(i))*log(qvec(i)) + xi(i)*log(1.-qvec(i));
 		} //end if
+                 
+               like2 += (1.-xi(i))*log(qvec(i)) + xi(i)*log(1.-qvec(i));
 	} //end for i
-      
-      //Calculate the objective function
+    
+      	      //Calculate the objective function
      like = like1 - like2 - gammln(N);
     
       f = like;
@@ -190,7 +191,6 @@ FUNCTION void getQi()
 	 a = logit(qtil) + b*logit(invn);
 
 	qvec=p2q(pvec, a, b);      //EqT2.6
-		       
 	       if(debug) COUT(a);
        		if(debug) COUT(qvec);
   }
@@ -289,6 +289,7 @@ FUNCTION dvector invlogit(const dvector x)
 
 FUNCTION dvar_vector invlogit(const dvar_vector x)
    {
+ 	 //COUT(x);
  	 return elem_div(mfexp(x),(1. + mfexp(x)));
    }// end function
 
